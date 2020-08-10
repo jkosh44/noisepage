@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 import errno
 import os
 import re
@@ -84,3 +85,17 @@ def print_output(filename):
         LOG.info(line.strip())
     fd.close()
     return
+
+
+def parse_common_command_line_args(description):
+    '''Common command line argument parsing methods'''
+
+    aparser = argparse.ArgumentParser(description=description)
+    aparser.add_argument("--db-host", help="DB Hostname")
+    aparser.add_argument("--db-port", type=int, help="DB Port")
+    aparser.add_argument("--db-output-file", help="DB output log file")
+    aparser.add_argument("--build-type",
+                         default="debug",
+                         choices=["debug", "release", "relwithdebinfo"],
+                         help="Build type (default: %(default)s)")
+    return aparser
