@@ -36,7 +36,7 @@ class DbInstance:
             # FOR
 
             self.db_output_fd = open(self.db_output_file, "w+")
-            self.db_process = subprocess.Popen(self.db_path,
+            self.db_process = subprocess.Popen([self.db_path, "-port", str(self.db_port)],
                                                stdout=self.db_output_fd,
                                                stderr=self.db_output_fd)
             try:

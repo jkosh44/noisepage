@@ -17,18 +17,24 @@ class TestServer:
         # clean up the command line args
         self.args = {k: v for k, v in args.items() if v}
 
-        # server output
-        db_output_file = self.args.get("db_output_file",
-                                       constants.DEFAULT_DB_OUTPUT_FILE)
-
         # set the DB path
         self.set_db_path()
 
         # db server location
         self.db_host = self.args.get("db_host", constants.DEFAULT_DB_HOST)
-        db_port = self.args.get("db_port", constants.DEFAULT_DB_PORT)
 
+        # set up main db instance
+        db_port = self.args.get("db_port", constants.DEFAULT_DB_PORT)
+        db_output_file = self.args.get("db_output_file",
+                                       constants.DEFAULT_DB_OUTPUT_FILE)
         self.main_db_instance = DbInstance(self.db_host, self.db_path, db_port, db_output_file)
+
+        # set up replica db instance
+        # TODO support multiple replicas
+        db_replica_port = self.args.get("db_replica_port", constants.DEFAULT_DB_REPLICA_PORT)
+        db_replica_output_file = self.args.get("db_replica_output_file",
+                                               constants.DEFAULT_DB_REPLICA_OUTPUT_FILE)
+        self.replica_db_instance = DbInstance(self.db_host, self.db_path, db_replica_port, db_replica_output_file)
 
         return
 
@@ -71,10 +77,12 @@ class TestServer:
     def run_db(self):
         """ Start the DB server """
         self.main_db_instance.run_db()
+        self.replica_db_instance.run_db()
 
     def stop_db(self):
         """ Stop the Db server and print it's log file """
         self.main_db_instance.stop_db()
+        self.replica_db_instance.stop_db()
 
     def restart_db(self):
         """ Restart the DB """
@@ -118,9 +126,12 @@ class TestServer:
                 if test_case.db_restart:
                     # for each test case, it can tell the test server whether it wants a fersh db or a used one
                     self.restart_db()
-                elif not self.db_process:
-                    # if there is no running db, we create one
-                    self.run_db()
+                # if there is not running db instance, we create one
+                else:
+                    if not self.main_db_instance.db_process:
+                        self.main_db_instance.run_db()
+                    if not self.replica_db_instance.db_process:
+                        self.replica_db_instance.run_db()
 
                 ret_val = self.run_test(test_case)
 
@@ -147,4 +158,5 @@ class TestServer:
         if ret_val_test_suite is None or ret_val_test_suite != constants.ErrorCode.SUCCESS:
             # print the db log file, only if we had a failure
             print_output(self.main_db_instance.db_output_file)
+            print_output(self.replica_db_instance.db_output_file)
         return ret_val_test_suite
