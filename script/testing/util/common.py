@@ -90,15 +90,12 @@ def print_output(filename):
 def parse_common_command_line_args(description):
     '''Common command line argument parsing methods'''
 
-    # TODO add support multiple ports and output files for multiple replicas. May need some validation on
-    #  number of ports and output files
-
     aparser = argparse.ArgumentParser(description=description)
     aparser.add_argument("--db-host", help="DB Hostname")
     aparser.add_argument("--db-port", type=int, help="DB Port")
-    aparser.add_argument("--db-replica-port", type=int, help="DB Replica Port")
+    aparser.add_argument("--db-replica-port", type=int, help="DB Replica Ports", nargs='*')
     aparser.add_argument("--db-output-file", help="DB output log file")
-    aparser.add_argument("--db-replica-output-file", help="DB Replica output log file")
+    aparser.add_argument("--db-replica-output-file", help="DB Replica output log files", nargs='*')
     aparser.add_argument("--build-type",
                          default="debug",
                          choices=["debug", "release", "relwithdebinfo"],

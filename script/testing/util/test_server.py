@@ -29,12 +29,15 @@ class TestServer:
                                        constants.DEFAULT_DB_OUTPUT_FILE)
         self.main_db_instance = DbInstance(self.db_host, self.db_path, db_port, db_output_file)
 
-        # set up replica db instance
-        # TODO support multiple replicas
-        db_replica_port = self.args.get("db_replica_port", constants.DEFAULT_DB_REPLICA_PORT)
-        db_replica_output_file = self.args.get("db_replica_output_file",
-                                               constants.DEFAULT_DB_REPLICA_OUTPUT_FILE)
-        self.replica_db_instance = DbInstance(self.db_host, self.db_path, db_replica_port, db_replica_output_file)
+        # set up replica db instances, by default we set up one replica
+        db_replica_ports = self.args.get("db_replica_port", [constants.DEFAULT_DB_REPLICA_PORT])
+        db_replica_output_files = self.args.get("db_replica_output_file",
+                                                [constants.DEFAULT_DB_REPLICA_OUTPUT_FILE.format(0)])
+        db_replica_info = self.normalize_replica_info(db_replica_ports, db_replica_output_files)
+        self.replica_db_instances = []
+        for port, output_file in db_replica_info:
+            self.replica_db_instances.append(
+                DbInstance(self.db_host, self.db_path, port, output_file))
 
         return
 
@@ -74,15 +77,33 @@ class TestServer:
             raise RuntimeError(msg)
         return
 
+    def normalize_replica_info(self, ports, output_files):
+        """ If not enough output files are provided for replica instances then we assign default files """
+
+        port_len = len(ports)
+        out_len = len(output_files)
+
+        if port_len > out_len:
+            for i in range(port_len - out_len):
+                output_files.append(constants.DEFAULT_DB_REPLICA_OUTPUT_FILE.format(i + out_len))
+
+        replica_info = []
+        for i in range(port_len):
+            replica_info.append((ports[i], output_files[i]))
+
+        return replica_info
+
     def run_db(self):
         """ Start the DB server """
         self.main_db_instance.run_db()
-        self.replica_db_instance.run_db()
+        for replica in self.replica_db_instances:
+            replica.run_db()
 
     def stop_db(self):
         """ Stop the Db server and print it's log file """
         self.main_db_instance.stop_db()
-        self.replica_db_instance.stop_db()
+        for replica in self.replica_db_instances:
+            replica.stop_db()
 
     def restart_db(self):
         """ Restart the DB """
@@ -130,8 +151,9 @@ class TestServer:
                 else:
                     if not self.main_db_instance.db_process:
                         self.main_db_instance.run_db()
-                    if not self.replica_db_instance.db_process:
-                        self.replica_db_instance.run_db()
+                    for replica in self.replica_db_instances:
+                        if not replica.db_process:
+                            replica.run_db()
 
                 ret_val = self.run_test(test_case)
 
@@ -158,5 +180,6 @@ class TestServer:
         if ret_val_test_suite is None or ret_val_test_suite != constants.ErrorCode.SUCCESS:
             # print the db log file, only if we had a failure
             print_output(self.main_db_instance.db_output_file)
-            print_output(self.replica_db_instance.db_output_file)
+            for replica in self.replica_db_instances:
+                print_output(replica.db_output_file)
         return ret_val_test_suite
