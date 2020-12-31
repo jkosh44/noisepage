@@ -15,6 +15,7 @@
 #include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
 #include "loggers/replication_logger.h"
+#include "loggers/selfdriving_logger.h"
 #include "loggers/settings_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/transaction_logger.h"
@@ -42,7 +43,11 @@ void LoggersUtil::Initialize() {
     modelserver::InitModelServerLogger();
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
+<<<<<<< HEAD
     replication::InitReplicationLogger();
+=======
+    selfdriving::InitSelfDrivingLogger();
+>>>>>>> Pilot Preparation (#1309)
     settings::InitSettingsLogger();
     storage::InitIndexLogger();
     storage::InitStorageLogger();
