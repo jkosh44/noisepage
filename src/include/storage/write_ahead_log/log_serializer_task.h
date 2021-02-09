@@ -1,6 +1,7 @@
 #pragma once
 
 #include <condition_variable>  // NOLINT
+#include <iostream>
 #include <queue>
 #include <thread>  // NOLINT
 #include <tuple>
@@ -53,6 +54,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * Runs main disk log writer loop. Called by thread registry upon initialization of thread
    */
   void RunTask() override {
+    std::cout << "LogSerializerTask TID: " << syscall(__NR_gettid) << std::endl;
     run_task_ = true;
     LogSerializerTaskLoop();
   }

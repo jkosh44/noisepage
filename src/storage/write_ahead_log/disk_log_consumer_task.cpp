@@ -1,5 +1,6 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 
+#include <iostream>
 #include <thread>  // NOLINT
 
 #include "common/scoped_timer.h"
@@ -9,6 +10,7 @@
 namespace noisepage::storage {
 
 void DiskLogConsumerTask::RunTask() {
+  std::cout << "DiskLogConsumerTask TID: " << syscall(__NR_gettid) << std::endl;
   run_task_ = true;
   DiskLogConsumerTaskLoop();
 }
