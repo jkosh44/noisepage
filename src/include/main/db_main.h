@@ -421,6 +421,7 @@ class DBMain {
             catalog_layer->GetCatalog(), txn_layer->GetTransactionManager(), txn_layer->GetDeferredActionManager(),
             common::ManagedPointer(thread_registry), common::ManagedPointer(storage_layer->GetBlockStore()));
         recovery_manager->StartRecovery();
+        replication_manager->EnableReplication();
       }
 
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
@@ -468,8 +469,6 @@ class DBMain {
         model_server_manager =
             std::make_unique<modelserver::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
       }
-
-      replication_manager->EnableReplication();
 
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
