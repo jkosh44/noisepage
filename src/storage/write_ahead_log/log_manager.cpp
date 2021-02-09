@@ -1,5 +1,8 @@
 #include "storage/write_ahead_log/log_manager.h"
 
+#include <chrono>
+#include <iostream>
+
 #include "common/dedicated_thread_registry.h"
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 #include "storage/write_ahead_log/log_serializer_task.h"
@@ -68,6 +71,8 @@ void LogManager::PersistAndStop() {
 }
 
 void LogManager::AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
+  auto t = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+  std::cout << "T1 start: " << t << std::endl;
   NOISEPAGE_ASSERT(run_log_manager_, "Must call Start on log manager before handing it buffers");
   log_serializer_task_->AddBufferToFlushQueue(buffer_segment);
 }

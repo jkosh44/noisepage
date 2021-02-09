@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <condition_variable>  // NOLINT
 #include <iostream>
 #include <queue>
@@ -79,6 +80,9 @@ class LogSerializerTask : public common::DedicatedThreadTask {
       flush_queue_.push(buffer_segment);
       empty_ = false;
       if (sleeping_) flush_queue_cv_.notify_all();
+      auto t = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+      std::cout << "T1 end: "<< t << std::endl;
+
     }
   }
 

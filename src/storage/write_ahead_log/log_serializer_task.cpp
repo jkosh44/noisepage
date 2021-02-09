@@ -20,6 +20,8 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 
   uint64_t num_bytes = 0, num_records = 0, num_txns = 0;
 
+  bool log_end = false;
+
   do {
     const bool logging_metrics_enabled =
         common::thread_context.metrics_store_ != nullptr &&
@@ -38,7 +40,17 @@ void LogSerializerTask::LogSerializerTaskLoop() {
     if (empty_) {
       std::unique_lock<std::mutex> guard(flush_queue_latch_);
       sleeping_ = true;
+      if(log_end) {
+        auto t_end = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        std::cout << "T2 end: "<< t_end << std::endl;
+        log_end = false;
+      }
       flush_queue_cv_.wait_for(guard, curr_sleep);
+      if(!empty_) {
+        log_end = true;
+        auto t_start = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        std::cout << "T2 start: "<< t_start << std::endl;
+      }
       sleeping_ = false;
     }
 
