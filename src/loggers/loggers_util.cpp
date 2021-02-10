@@ -43,11 +43,8 @@ void LoggersUtil::Initialize() {
     modelserver::InitModelServerLogger();
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
-<<<<<<< HEAD
     replication::InitReplicationLogger();
-=======
     selfdriving::InitSelfDrivingLogger();
->>>>>>> Pilot Preparation (#1309)
     settings::InitSettingsLogger();
     storage::InitIndexLogger();
     storage::InitStorageLogger();
