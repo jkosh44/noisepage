@@ -71,10 +71,10 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   auto last_persist = std::chrono::high_resolution_clock::now();
   // Disk log consumer task thread spins in this loop. When notified or periodically, we wake up and process serialized
   // buffers
-  bool log_end = false;
   bool log_persist = false;
   bool log_write = false;
   bool log_commit = false;
+  std::chrono::nanoseconds t_start;
   do {
     const bool logging_metrics_enabled =
         common::thread_context.metrics_store_ != nullptr &&
@@ -89,29 +89,29 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     {
       // Wait until we are told to flush buffers
       std::unique_lock<std::mutex> lock(persist_lock_);
+
+      // Log this iteration if we did anything
+      if(log_write || log_persist || log_commit) {
+        auto t_end = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        std::cout << "T3 start: "<< t_start.count() << std::endl;
+        std::cout << "T3 end: "<< t_end << "; write: " << (log_write ? "true" : "false") <<  "; persist: " << (log_persist ? "true" : "false") <<  "; commit: " << (log_commit ? "true" : "false") << std::endl;
+        log_write = false;
+        log_persist = false;
+        log_commit = false;
+      }
+
       // Wake up the task thread if:
       // 1) The serializer thread has signalled to persist all non-empty buffers to disk
       // 2) There is a filled buffer to write to the disk
       // 3) LogManager has shut down the task
       // 4) Our persist interval timed out
-      if(log_end) {
-        auto t_end = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        std::cout << "T3 end: "<< t_end << "; write: " << (log_write ? "true" : "false") <<  "; persist: " << (log_persist ? "true" : "false") <<  "; commit: " << (log_commit ? "true" : "false") << std::endl;
-        log_end = false;
-        log_write = false;
-        log_persist = false;
-        log_commit = false;
-      }
       bool signaled = disk_log_writer_thread_cv_.wait_for(
           lock, curr_sleep, [&] { return force_flush_ || !filled_buffer_queue_->Empty() || !run_task_; });
+
+      // Set up logging flags (we don't want to log when we wake up and do nothing)
       log_write = !filled_buffer_queue_->Empty();
-      log_persist = current_data_written_ > 0;
-      log_commit = !commit_callbacks_.empty();
-      if(log_write || log_persist || log_commit) {
-        log_end = true;
-        auto t_start = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        std::cout << "T3 start: "<< t_start << std::endl;
-      }
+      t_start = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+
       next_sleep = signaled ? persist_interval_ : curr_sleep * 2;
       next_sleep = std::min(next_sleep, max_sleep);
     }
@@ -128,7 +128,8 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
                                                                          last_persist) > curr_sleep;
 
     if (timeout || current_data_written_ > persist_threshold_ || force_flush_ || !run_task_) {
-      log_persist = true;
+      log_persist = current_data_written_ > 0;
+      log_commit = !commit_callbacks_.empty();
       std::unique_lock<std::mutex> lock(persist_lock_);
       num_buffers = PersistLogFile();
       num_bytes = current_data_written_;
